@@ -1,3 +1,4 @@
+#chyba lepszy pomysl
 import numpy as np
 
 
