@@ -1,6 +1,5 @@
-#chyba lepszy pomysl
 import numpy as np
-
+import random
 
 class OffensivePlayer:
     def __init__(self, x, y, has_ball=False):
@@ -9,74 +8,107 @@ class OffensivePlayer:
         """
         self.x = x
         self.y = y
-        self.has_ball = has_ball  # Czy zawodnik posiada piłkę
-        self.speed = 0.95  # Prędkość zawodnika
+        self.has_ball = has_ball
+        self.speed = 1.0  # Prędkość zawodnika
 
-    def move(self, target_x, target_y, delta_t, field_x_min, field_x_max, field_y_min, field_y_max):
+    def move(self, delta_t):
         """
-        Poruszaj się w kierunku celu z ograniczeniem do boiska.
-        """
-        direction = np.arctan2(target_y - self.y, target_x - self.x)
-        self.x += self.speed * np.cos(direction) * delta_t
-        self.y += self.speed * np.sin(direction) * delta_t
-
-        # Ograniczenie ruchu do wymiarów boiska
-        self.x = np.clip(self.x, field_x_min, field_x_max)
-        self.y = np.clip(self.y, field_y_min, field_y_max)
-
-    def closest_opponent_distance(self, opponents):
-        """
-        Znajdź najbliższego przeciwnika i zwróć odległość.
-        """
-        distances = [np.linalg.norm((self.x - op.x, self.y - op.y)) for op in opponents]
-        return min(distances)
-
-    def pass_ball(self, ball, teammates):
-        """
-        Przeprowadź podanie do najbliższego kolegi z drużyny.
+        Ruch ofensywnego zawodnika:
+        - Bez piłki: minimalnie do przodu.
+        - Z piłką: intensywnie do przodu.
         """
         if self.has_ball:
-            closest_teammate = min(teammates, key=lambda tm: np.linalg.norm((self.x - tm.x, self.y - tm.y)))
-            self.has_ball = False
-            ball.initiate_pass(self, closest_teammate)
+            self.y -= self.speed * delta_t  # Ruch w stronę przodu boiska
+        else:
+            self.y -= 0.5 * delta_t  # Minimalny ruch naprzód
+
+    def closest_defender_distance(self, defenders):
+        """
+        Znajdź najbliższego obrońcę i zwróć odległość.
+        """
+        distances = [np.linalg.norm((self.x - d.x, self.y - d.y)) for d in defenders]
+        return min(distances)
+
+    def find_best_teammate(self, teammates, defenders):
+        """
+        Znajdź kolegę z drużyny, który jest najdalej od najbliższego obrońcy.
+        """
+        best_teammate = None
+        max_distance = -np.inf
+        for teammate in teammates:
+            if teammate != self:  # Nie podawaj do siebie
+                distance_to_closest_defender = teammate.closest_defender_distance(defenders)
+                if distance_to_closest_defender > max_distance:
+                    max_distance = distance_to_closest_defender
+                    best_teammate = teammate
+        return best_teammate
+
+    def pass_ball(self, ball, teammates, defenders):
+        """
+        Podaj piłkę do najlepszego kolegi z drużyny.
+        """
+        if self.has_ball and self.closest_defender_distance(defenders)<1:
+            best_teammate = self.find_best_teammate(teammates, defenders)
+            if best_teammate:
+                self.has_ball = False
+                ball.initiate_pass(self, best_teammate)
 
 
 class DefensivePlayer:
-    def __init__(self, x, y):
+    def __init__(self, x, y, ideal_x, ideal_y):
         """
         Inicjalizacja zawodnika defensywnego.
         """
         self.x = x
         self.y = y
-        self.speed = 1.05  # Prędkość zawodnika
+        self.ideal_x = ideal_x  # Idealna pozycja w formacji
+        self.ideal_y = ideal_y
+        self.speed = 1.0  # Prędkość zawodnika
 
-    def move_towards(self, target_x, target_y, delta_t, field_x_min, field_x_max, field_y_min, field_y_max):
+    def move_towards(self, target_x, target_y, delta_t):
         """
-        Poruszaj się w kierunku wskazanej pozycji z ograniczeniem do boiska.
+        Poruszaj się w kierunku celu.
         """
         direction = np.arctan2(target_y - self.y, target_x - self.x)
         self.x += self.speed * np.cos(direction) * delta_t
         self.y += self.speed * np.sin(direction) * delta_t
 
-        # Ograniczenie ruchu do wymiarów boiska
-        self.x = np.clip(self.x, field_x_min, field_x_max)
-        self.y = np.clip(self.y, field_y_min, field_y_max)
+    def move(self, ball, delta_t):
+        """
+        Poruszaj się pod wpływem:
+        - Przyciągania do idealnej pozycji.
+        - Przyciągania do piłki (silniejsze, jeśli bliżej piłki).
+        """
+        attraction_to_ball_x = (ball.x - self.x) / (np.linalg.norm((ball.x - self.x, ball.y - self.y)) + 1e-5)
+        attraction_to_ball_y = (ball.y - self.y) / (np.linalg.norm((ball.x - self.x, ball.y - self.y)) + 1e-5)
 
-    def can_intercept_ball(self, ball):
+        attraction_to_ideal_x = self.ideal_x - self.x
+        attraction_to_ideal_y = self.ideal_y - self.y
+
+        self.x += (0.7 * attraction_to_ball_x + 0.3 * attraction_to_ideal_x) * self.speed * delta_t
+        self.y += (0.7 * attraction_to_ball_y + 0.3 * attraction_to_ideal_y) * self.speed * delta_t
+
+    def intercept_pass(self, ball):
         """
-        Sprawdź, czy zawodnik defensywny może przejąć piłkę.
+        Sprawdź, czy możesz przeciąć podanie.
         """
-        if not ball.owner and ball.is_moving:
+        if ball.is_moving and not ball.owner:
             distance_to_ball = np.linalg.norm((self.x - ball.x, self.y - ball.y))
             return distance_to_ball < 1.0
         return False
 
-    def can_tackle(self, opponent):
+    def tackle(self, offensive_player):
         """
-        Sprawdź, czy zawodnik defensywny może odebrać piłkę przeciwnikowi.
+        Sprawdź, czy możesz odebrać piłkę przeciwnikowi.
         """
-        distance_to_opponent = np.linalg.norm((self.x - opponent.x, self.y - opponent.y))
-        return distance_to_opponent < 1.0
+        distance_to_player = np.linalg.norm((self.x - offensive_player.x, self.y - offensive_player.y))
+        if distance_to_player < 1.0 and offensive_player.has_ball:
+            if random.random() < 0.3:
+                offensive_player.has_ball = False
+            else:
+                offensive_player.has_ball = True
+            return True
+        return False
 
 
 class Ball:
@@ -93,24 +125,20 @@ class Ball:
 
     def initiate_pass(self, passer, receiver):
         """
-        Zainicjuj podanie.
+        Rozpocznij podanie piłki.
         """
         self.owner = None
         self.is_moving = True
         self.target = receiver
 
-    def update_position(self, delta_t, field_x_min, field_x_max, field_y_min, field_y_max):
+    def update_position(self, delta_t):
         """
-        Zaktualizuj pozycję piłki w czasie podania z ograniczeniem do boiska.
+        Zaktualizuj pozycję piłki podczas podania.
         """
         if self.is_moving and self.target:
             direction = np.arctan2(self.target.y - self.y, self.target.x - self.x)
             self.x += self.speed * np.cos(direction) * delta_t
             self.y += self.speed * np.sin(direction) * delta_t
-
-            # Ograniczenie ruchu do wymiarów boiska
-            self.x = np.clip(self.x, field_x_min, field_x_max)
-            self.y = np.clip(self.y, field_y_min, field_y_max)
 
             # Sprawdź, czy piłka dotarła do celu
             if np.linalg.norm((self.x - self.target.x, self.y - self.target.y)) < 0.1:
