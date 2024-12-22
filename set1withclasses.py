@@ -101,14 +101,18 @@ class DefensivePlayer:
         """
         Sprawdź, czy możesz odebrać piłkę przeciwnikowi.
         """
+        # Obliczenie odległości do zawodnika ofensywnego
         distance_to_player = np.linalg.norm((self.x - offensive_player.x, self.y - offensive_player.y))
+
+        # Jeśli odległość jest mniejsza niż 1 metr i przeciwnik ma piłkę
         if distance_to_player < 1.0 and offensive_player.has_ball:
+            # 3/10 szans na odebranie piłki
             if random.random() < 0.3:
                 offensive_player.has_ball = False
+                print("Zawodnik defensywny przejął piłkę!")
+                return True  # Piłka została przejęta
             else:
-                offensive_player.has_ball = True
-            return True
-        return False
+                return False  # Piłka nie została przejęta
 
 
 class Ball:
