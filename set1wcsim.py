@@ -83,6 +83,19 @@ def plot_state():
     plt.legend()
     plt.pause(0.01)
 
+
+def find_closest_to_ball(defenders, ball):
+    """
+    Znajdź zawodnika defensywnego, który jest najbliżej piłki.
+    Zwraca obiekt zawodnika oraz odległość.
+    """
+    # Oblicz odległości do piłki dla wszystkich obrońców
+    distances = [(defender, np.linalg.norm((defender.x - ball.x, defender.y - ball.y))) for defender in defenders]
+
+    # Znajdź obrońcę z minimalną odległością
+    closest_defender, min_distance = min(distances, key=lambda x: x[1])
+    return closest_defender
+
 # Funkcja symulująca jeden krok z poprawionym ruchem zawodnika posiadającego piłkę
 def simulate_step():
     # Aktualizacja piłki i zawodnika, który ją posiada
@@ -93,25 +106,40 @@ def simulate_step():
 
     # Ruch zawodników ofensywnych
     for offensive in offensives:
+        print(ball.closest_defender_distance(defenders))
         if offensive.has_ball:
-            offensive.move(delta_t)  # Ruch z piłką
+            offensive.move(delta_t, defenders)  # Ruch z piłką
             ball.x, ball.y = offensive.x, offensive.y  # Aktualizacja pozycji piłki
             closest_defender_distance = offensive.closest_defender_distance(defenders)
-            if closest_defender_distance < 2.0:  # Obrońca blisko, podanie
+            if closest_defender_distance < 1.5:  # Obrońca blisko, podanie
                 offensive.pass_ball(ball, offensives, defenders)
         else:
-            offensive.move(delta_t)  # Minimalny ruch do przodu
+            offensive.move(delta_t, defenders)  # Minimalny ruch do przodu
 
     # Ruch zawodników defensywnych
     for defender in defenders:
+        # Priorytet 1: Przechwycenie podania
         if defender.intercept_pass(ball):
             ball.is_moving = False
             ball.owner = defender
-            print(f"Zawodnik defensywny D przejął piłkę!")
+            print(f"Zawodnik defensywny przeciął podanie")
             return False  # Zakończenie symulacji, piłka przejęta
-        elif ball.owner is None:  # Brak właściciela piłki
+
+    # Priorytet 2: Próba odbioru piłki przez najbliższego obrońcę
+    if ball.owner and isinstance(ball.owner, OffensivePlayer):
+        closest_defender = find_closest_to_ball(defenders, ball)
+        success = closest_defender.tackle(ball.owner)
+        if success:
+            ball.owner = closest_defender  # Piłka przejęta przez obrońcę
+            print(f"Zawodnik {closest_defender} przejął piłkę!")
+            return False  # Zakończenie symulacji, piłka przejęta
+
+    # Priorytet 3: Ruch w kierunku piłki, jeśli nie jest w posiadaniu nikogo
+    for defender in defenders:
+        if ball.owner is None:
             defender.move_towards(ball.x, ball.y, delta_t)
-        else:  # Pilnują idealnych pozycji
+        else:
+            # Pilnowanie pozycji w pozostałych przypadkach
             defender.move(ball, delta_t)
 
     return True  # Kontynuacja symulacji

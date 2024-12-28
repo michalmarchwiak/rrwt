@@ -1,6 +1,9 @@
 import numpy as np
 import random
 
+
+
+
 class OffensivePlayer:
     def __init__(self, x, y, has_ball=False):
         """
@@ -11,16 +14,23 @@ class OffensivePlayer:
         self.has_ball = has_ball
         self.speed = 1.0  # Prędkość zawodnika
 
-    def move(self, delta_t):
+    def move(self, delta_t, defenders):
         """
-        Ruch ofensywnego zawodnika:
-        - Bez piłki: minimalnie do przodu.
-        - Z piłką: intensywnie do przodu.
+        Poruszanie zawodnika ofensywnego.
+        Jeśli zawodnik jest na pozycji spalonej, cofa się.
         """
-        if self.has_ball:
-            self.y -= self.speed * delta_t  # Ruch w stronę przodu boiska
+        # Znalezienie najbliższego obrońcy bliżej bramki niż zawodnik
+        closest_defender_y = min(defender.y for defender in defenders)
+
+        # Sprawdzenie, czy zawodnik jest na pozycji spalonej
+        if self.y < closest_defender_y and self.has_ball == False:
+            # Cofanie się w kierunku piłki (lub środka boiska)
+            target_y = min(closest_defender_y - 2, 105 / 2)  # Ustal cel w bezpiecznej odległości od linii spalonego
+            direction = np.arctan2(target_y - self.y, 0)  # Ruch w pionie
+            self.y += self.speed * np.sin(direction) * delta_t
         else:
-            self.y -= 0.5 * delta_t  # Minimalny ruch naprzód
+            # Ruch w stronę bramki przeciwnika
+            self.y -= self.speed * delta_t
 
     def closest_defender_distance(self, defenders):
         """
@@ -47,11 +57,10 @@ class OffensivePlayer:
         """
         Podaj piłkę do najlepszego kolegi z drużyny.
         """
-        if self.has_ball and self.closest_defender_distance(defenders)<1:
-            best_teammate = self.find_best_teammate(teammates, defenders)
-            if best_teammate:
-                self.has_ball = False
-                ball.initiate_pass(self, best_teammate)
+        best_teammate = self.find_best_teammate(teammates, defenders)
+        if best_teammate:
+            self.has_ball = False
+            ball.initiate_pass(self, best_teammate)
 
 
 class DefensivePlayer:
@@ -94,7 +103,7 @@ class DefensivePlayer:
         """
         if ball.is_moving and not ball.owner:
             distance_to_ball = np.linalg.norm((self.x - ball.x, self.y - ball.y))
-            return distance_to_ball < 0.5
+            return distance_to_ball < 1.0
         return False
 
     def tackle(self, offensive_player):
@@ -105,7 +114,7 @@ class DefensivePlayer:
         distance_to_player = np.linalg.norm((self.x - offensive_player.x, self.y - offensive_player.y))
 
         # Jeśli odległość jest mniejsza niż 1 metr i przeciwnik ma piłkę
-        if distance_to_player < 1.0 and offensive_player.has_ball:
+        if distance_to_player < 2.0 and offensive_player.has_ball:
             # 3/10 szans na odebranie piłki
             if random.random() < 0.1:
                 offensive_player.has_ball = False
@@ -113,6 +122,9 @@ class DefensivePlayer:
                 return True  # Piłka została przejęta
             else:
                 return False  # Piłka nie została przejęta
+
+
+
 
 
 class Ball:
@@ -134,6 +146,13 @@ class Ball:
         self.owner = None
         self.is_moving = True
         self.target = receiver
+
+    def closest_defender_distance(self, defenders):
+        """
+        Znajdź najbliższego obrońcę i zwróć odległość.
+        """
+        distances = [np.linalg.norm((self.x - d.x, self.y - d.y)) for d in defenders]
+        return min(distances)
 
     def update_position(self, delta_t):
         """
