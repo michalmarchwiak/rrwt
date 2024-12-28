@@ -57,7 +57,7 @@ offensives = [o1, o2, o3, o4, o5, o6]
 
 # Parametry symulacji
 delta_t = 0.1  # Krok czasowy
-steps = 200  # Liczba kroków w symulacji
+steps = 2000  # Liczba kroków w symulacji
 
 # Funkcja rysująca boisko i zawodników
 def plot_state():
@@ -97,7 +97,7 @@ def simulate_step():
             offensive.move(delta_t)  # Ruch z piłką
             ball.x, ball.y = offensive.x, offensive.y  # Aktualizacja pozycji piłki
             closest_defender_distance = offensive.closest_defender_distance(defenders)
-            if closest_defender_distance < 1.0:  # Obrońca blisko, podanie
+            if closest_defender_distance < 2.0:  # Obrońca blisko, podanie
                 offensive.pass_ball(ball, offensives, defenders)
         else:
             offensive.move(delta_t)  # Minimalny ruch do przodu
@@ -115,7 +115,6 @@ def simulate_step():
             defender.move(ball, delta_t)
 
     return True  # Kontynuacja symulacji
-
 # Symulacja
 plt.figure(figsize=(10, 15))
 plt.ion()

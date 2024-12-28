@@ -94,7 +94,7 @@ class DefensivePlayer:
         """
         if ball.is_moving and not ball.owner:
             distance_to_ball = np.linalg.norm((self.x - ball.x, self.y - ball.y))
-            return distance_to_ball < 1.0
+            return distance_to_ball < 0.5
         return False
 
     def tackle(self, offensive_player):
@@ -107,7 +107,7 @@ class DefensivePlayer:
         # Jeśli odległość jest mniejsza niż 1 metr i przeciwnik ma piłkę
         if distance_to_player < 1.0 and offensive_player.has_ball:
             # 3/10 szans na odebranie piłki
-            if random.random() < 0.3:
+            if random.random() < 0.1:
                 offensive_player.has_ball = False
                 print("Zawodnik defensywny przejął piłkę!")
                 return True  # Piłka została przejęta
@@ -124,7 +124,7 @@ class Ball:
         self.y = y
         self.owner = owner  # Zawodnik posiadający piłkę (lub None)
         self.is_moving = False
-        self.speed = 2.0
+        self.speed = 4.0
         self.target = None
 
     def initiate_pass(self, passer, receiver):
