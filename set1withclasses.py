@@ -5,14 +5,21 @@ import random
 
 
 class OffensivePlayer:
-    def __init__(self, x, y, has_ball=False):
+    def __init__(self, name, x, y, has_ball=False):
         """
         Inicjalizacja zawodnika ofensywnego.
         """
+        self.name = name
         self.x = x
         self.y = y
         self.has_ball = has_ball
         self.speed = 1.0  # Prędkość zawodnika
+
+
+
+    def __str__(self):
+        return self.name
+
 
     def move(self, delta_t, defenders):
         """
@@ -58,9 +65,11 @@ class OffensivePlayer:
         Podaj piłkę do najlepszego kolegi z drużyny.
         """
         best_teammate = self.find_best_teammate(teammates, defenders)
-        if best_teammate:
-            self.has_ball = False
-            ball.initiate_pass(self, best_teammate)
+        self.has_ball = False
+        ball.owner = None  # Piłka przestaje mieć właściciela podczas ruchu
+        ball.target = best_teammate  # Ustawienie celu podania
+        ball.is_moving = True  # Piłka zaczyna się poruszać
+        print(f"Zawodnik {self} podaje piłkę do {best_teammate}!")
 
 
 class DefensivePlayer:
@@ -139,14 +148,6 @@ class Ball:
         self.speed = 4.0
         self.target = None
 
-    def initiate_pass(self, passer, receiver):
-        """
-        Rozpocznij podanie piłki.
-        """
-        self.owner = None
-        self.is_moving = True
-        self.target = receiver
-
     def closest_defender_distance(self, defenders):
         """
         Znajdź najbliższego obrońcę i zwróć odległość.
@@ -168,3 +169,8 @@ class Ball:
                 self.is_moving = False
                 self.owner = self.target
                 self.target = None
+
+    def move(self):
+        if self.owner:
+            self.x = self.owner.x
+            self.y = self.owner.y
