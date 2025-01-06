@@ -1,6 +1,9 @@
+import matplotlib
+
 from set1withclasses import OffensivePlayer, DefensivePlayer, Ball
 import numpy as np
 import matplotlib.pyplot as plt
+matplotlib.use('TkAgg')
 
 # Wymiary boiska
 field_x_min, field_x_max = float(0), float(68)
@@ -43,12 +46,12 @@ d5 = DefensivePlayer(25, 30, 25, 30)
 d6 = DefensivePlayer(35, 30, 35, 30)
 d7 = DefensivePlayer(45, 30, 45, 30)
 
-o1 = OffensivePlayer("o1", 20, 40, False)
-o2 = OffensivePlayer("o2",34, 45, True)
-o3 = OffensivePlayer("o3", 48, 40, False)
-o4 = OffensivePlayer("o4", 25, 55, False)
-o5 = OffensivePlayer("o5", 34, 60, False)
-o6 = OffensivePlayer("o6", 43, 55, False)
+o1 = OffensivePlayer("o1", 20, 40, 20, 40, False)
+o2 = OffensivePlayer("o2",34, 45, 34, 45, True)
+o3 = OffensivePlayer("o3", 48, 40, 48, 40,False)
+o4 = OffensivePlayer("o4", 25, 55, 25, 55, False)
+o5 = OffensivePlayer("o5", 34, 60, 34, 60, False)
+o6 = OffensivePlayer("o6", 43, 55, 43, 55, False)
 
 ball = Ball(x=34, y=45, owner=o2)
 
@@ -57,12 +60,12 @@ defenders = [d1, d2, d3, d4, d5, d6, d7]
 offensives = [o1, o2, o3, o4, o5, o6]
 
 # Parametry symulacji
-delta_t = 0.1  # Krok czasowy
+delta_t = 0.3  # Krok czasowy
 steps = 2000  # Liczba kroków w symulacji
 
 # Funkcja rysująca boisko i zawodników
 def plot_state():
-    plt.clf()
+    plt.gca().cla()  # Czyści tylko aktualną oś zamiast całej figury
     draw_pitch()
 
     # Rysowanie zawodników defensywnych
@@ -82,7 +85,7 @@ def plot_state():
     plt.ylim(-5, field_y_max + 5)
     plt.gca().set_aspect("equal", adjustable="box")
     plt.legend()
-    plt.pause(0.000001)
+    plt.pause(0.01)
 
 
 def find_closest_to_ball(defenders, ball):
@@ -113,13 +116,12 @@ def simulate_step():
     for offensive in offensives:
         if offensive.has_ball:
             offensive.move(delta_t, defenders)  # Ruch z piłką
-            # Sprawdzenie, czy podać piłkę
             closest_defender_distance = offensive.closest_defender_distance(defenders)
             if closest_defender_distance < 1.5:  # Obrońca blisko, podanie
                 offensive.pass_ball(ball, offensives, defenders)
                 print(f"Zawodnik {offensive} podał piłkę!")
         else:
-            offensive.move(delta_t, defenders)  # Minimalny ruch do przodu
+            offensive.move(delta_t, defenders)
 
     # Próba przejęcia piłki przez obrońców
     for defender in defenders:

@@ -5,39 +5,46 @@ import random
 
 
 class OffensivePlayer:
-    def __init__(self, name, x, y, has_ball=False):
+    def __init__(self, name, x, y, ideal_x, ideal_y, has_ball=False):
         """
         Inicjalizacja zawodnika ofensywnego.
         """
         self.name = name
         self.x = x
         self.y = y
+        self.ideal_x = ideal_x  # Idealna pozycja w formacji (X)
+        self.ideal_y = ideal_y  # Idealna pozycja w formacji (Y)
         self.has_ball = has_ball
         self.speed = 1.0  # Prędkość zawodnika
-
-
 
     def __str__(self):
         return self.name
 
-
     def move(self, delta_t, defenders):
         """
         Poruszanie zawodnika ofensywnego.
-        Jeśli zawodnik jest na pozycji spalonej, cofa się.
+        - Jeśli zawodnik jest na pozycji spalonej, cofa się.
+        - Jeśli zawodnik nie ma piłki, wraca do swojej idealnej pozycji.
         """
-        # Znalezienie najbliższego obrońcy bliżej bramki niż zawodnik
-        closest_defender_y = min(defender.y for defender in defenders)
+        if self.has_ball:
+            # Znalezienie najbliższego obrońcy bliżej bramki niż zawodnik
+            closest_defender_y = min(defender.y for defender in defenders)
 
-        # Sprawdzenie, czy zawodnik jest na pozycji spalonej
-        if self.y < closest_defender_y and self.has_ball == False:
-            # Cofanie się w kierunku piłki (lub środka boiska)
-            target_y = min(closest_defender_y - 2, 105 / 2)  # Ustal cel w bezpiecznej odległości od linii spalonego
-            direction = np.arctan2(target_y - self.y, 0)  # Ruch w pionie
-            self.y += self.speed * np.sin(direction) * delta_t
+            # Sprawdzenie, czy zawodnik jest na pozycji spalonej
+            if self.y < closest_defender_y:
+                # Cofanie się w kierunku piłki (lub środka boiska)
+                target_y = min(closest_defender_y - 2, 105 / 2)  # Ustal cel w bezpiecznej odległości od linii spalonego
+                direction = np.arctan2(target_y - self.y, 0)  # Ruch w pionie
+                self.y += self.speed * np.sin(direction) * delta_t
+            else:
+                # Ruch w stronę bramki przeciwnika
+                self.y -= self.speed * delta_t
         else:
-            # Ruch w stronę bramki przeciwnika
-            self.y -= self.speed * delta_t
+            # Jeśli zawodnik nie ma piłki, wraca do swojej idealnej pozycji
+            direction = np.arctan2(self.ideal_y - self.y, self.ideal_x - self.x)
+            self.x += self.speed * np.cos(direction) * delta_t * 0.5 # Wolniejszy ruch do idealnej pozycji
+            self.y += (-delta_t * 0.7) + (self.speed * np.sin(direction) * delta_t * 0.5)
+
 
     def closest_defender_distance(self, defenders):
         """
@@ -65,12 +72,12 @@ class OffensivePlayer:
         Podaj piłkę do najlepszego kolegi z drużyny.
         """
         best_teammate = self.find_best_teammate(teammates, defenders)
-        self.has_ball = False
-        ball.owner = None  # Piłka przestaje mieć właściciela podczas ruchu
-        ball.target = best_teammate  # Ustawienie celu podania
-        ball.is_moving = True  # Piłka zaczyna się poruszać
-        print(f"Zawodnik {self} podaje piłkę do {best_teammate}!")
-
+        if best_teammate:
+            self.has_ball = False
+            ball.owner = None  # Piłka przestaje mieć właściciela podczas ruchu
+            ball.target = best_teammate  # Ustawienie celu podania
+            ball.is_moving = True  # Piłka zaczyna się poruszać
+            print(f"{self} podał piłkę do {best_teammate}")
 
 class DefensivePlayer:
     def __init__(self, x, y, ideal_x, ideal_y):
@@ -165,10 +172,12 @@ class Ball:
             self.y += self.speed * np.sin(direction) * delta_t
 
             # Sprawdź, czy piłka dotarła do celu
-            if np.linalg.norm((self.x - self.target.x, self.y - self.target.y)) < 0.1:
+            if np.linalg.norm((self.x - self.target.x, self.y - self.target.y)) < 1:
                 self.is_moving = False
                 self.owner = self.target
+                self.owner.has_ball = True
                 self.target = None
+                print(f"piłka dotarła do {self.owner}")
 
     def move(self):
         if self.owner:
