@@ -1,0 +1,82 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{enumitem}
+\usepackage{polski}
+
+\title{rr}
+\author{Mirek Myszka}
+\date{December 2024}
+
+\begin{document}
+
+\maketitle
+
+\section*{Dynamika zawodników defensywnych podczas meczu piłki nożnej. Optymalizacja ustawienia} 
+
+Odkąd w Cambridge w 1848 roku zapisano pierwsze zasady piłki nożnej, gra nieustannie ewoluuje. Początkowo najpopularniejszą formacją była tak zwana „odwrócona piramida”, czyli ustawienie 1-2-3-5. Dopiero później uświadomiono sobie, że dwóch środkowych obrońców to zdecydowanie za mało, i dziś w formacji obronnej widujemy trzech, czterech, a nawet pięciu obrońców. Jeden z najlepszych menedżerów w piłce nożnej, Sir Alex Ferguson, powiedział: „Atak wygrywa ci mecze, obrona wygrywa ci trofea” – i jest w tym wiele prawdy. Aby wygrać mecz, zazwyczaj musisz zdobyć jedną bramkę więcej niż przeciwnik, a staje się to o wiele łatwiejsze, gdy twoja defensywa jest szczelna.
+
+Na zachowanie obrońcy wpływa wiele czynników, ale my skupimy się głównie na trzech z nich: wyznaczonej pozycji, odległości od przeciwnika oraz odległości od kolegów z drużyny. W naszym projekcie postaramy się znaleźć optymalne zachowanie obrońców za pomocą równania różniczkowego i zdecydować, jaka mieszanka tych czynników przynosi najlepsze rezultaty w obronie własnej bramki. Oczywiście tak uproszczony model nie rozwiąże problemów menedżerów największych klubów piłkarskich, ale może okazać się pomocny przy planowaniu treningów czy tworzeniu piłkarskich gier komputerowych.
+
+\section*{Wzór na całkowitą siłę działającą na zawodnika}
+
+Równanie opisujące całkowitą siłę działającą na $i$-tego zawodnika w drużynie można zapisać jako:
+
+\begin{equation}
+    \frac{d \textbf{r}_{i}}{dt}=\textbf{F}_{pos,i}+\textbf{F}_{opp,i}+\textbf{F}_{team,i}
+\end{equation}
+
+Gdzie:
+\begin{itemize}
+    \item \(\mathbf{r}_i(t)\): Pozycja \(i\)-tego obrońcy w czasie \(t\) jako wektor \([\mathbf{x}_i(t), \mathbf{y}_i(t)]\).
+    \item \(\frac{d\mathbf{r}_i}{dt}\): Prędkość \(i\)-tego obrońcy (zmiana pozycji w czasie).
+    \item \(\mathbf{F}_{\text{pos},i}\): Siła przyciągania \(i\)-tego obrońcy do ustalonej pozycji na boisku
+    \item \(\mathbf{F}_{\text{opp},i}\): Siła działająca na \(i\)-tego obrońce reagująca na przeciwnika z piłką
+    \item \(\mathbf{F}_{\text{team},i}\): Siła działająca na \(i\)-tego obrońce reagująca na pozycje kolegów z drużyny
+\end{itemize}
+Zgodnie z \textbf{zasadą superpozycji} w mechanice klasycznej, siły pochodzące z różnych źródeł mogą być sumowane w celu wyznaczenia całkowitej siły działającej na ciało.
+
+\subsection*{1. Siła dążenia do pozycji (\(F_{\text{pos}, i}\))}
+
+Siła ta opisuje dążenie zawodnika do swojej wyznaczonej pozycji na boisku. Bazuje ona na \textbf{prawie Hooke’a} (siła sprężystości): \(F = -k \cdot x\).
+\[
+F_{\text{pos}, i} = -k_{\text{pos}} \cdot (r_i - r_{\text{pos}, i})
+\]
+\begin{itemize}
+    \item \(r_i\) - aktualna pozycja \(i\)-tego zawodnika,
+    \item \(r_{\text{pos}, i}\) - wyznaczona pozycja \(i\)-tego zawodnika,
+    \item \(k_{\text{pos}}\) - współczynnik określający intensywność dążenia do celu.
+\end{itemize}
+
+\subsection*{2. Siła przyciągania do przeciwnika (\(F_{\text{opp}, i}\))}
+
+Siła ta opisuje reakcję zawodnika na pozycję przeciwnika. Bazuje ona na \textbf{prawie grawitacji} (przyciąganie ciał)
+\[
+F_{\text{opp}, i} = \frac{k_{\text{opp}} \cdot (r_{\text{opp}} - r_i)}{\|r_{\text{opp}} - r_i\|^2 + \epsilon}
+\]
+\begin{itemize}
+    \item \(r_{\text{opp}}\) - pozycja przeciwnika z piłką,
+    \item \(r_i\) - aktualna pozycja \(i\)-tego zawodnika,
+    \item \(k_{\text{opp}}\) - współczynnik określający intensywność reakcji na przeciwnika,
+    \item \(\epsilon\) - mała wartość dodana w celu uniknięcia dzielenia przez zero.
+\end{itemize}
+W naszym modelu zawodnik $i$ jest przyciągany przez przeciwnika w punkcie $\mathbf{r}_{\text{opp}}$, a siła maleje z kwadratem odległości ($\|\mathbf{r}_{\text{opp}} - \mathbf{r}_i\|^2$). Współczynnik $k_{\text{opp}}$ kontroluje, jak silne jest przyciąganie, a $\varepsilon$ zapobiega dzieleniu przez zero, gdy zawodnik $i$ znajduje się bardzo blisko przeciwnika.
+
+\subsection*{3. Siła odpychania od kolegów z drużyny (\(F_{\text{team}, i}\))}
+
+Siła ta opisuje interakcje przestrzenne zawodnika z innymi członkami drużyny. Bazuje ona na \textbf{prawie Coulomba} (odpychanie między ładunkami): \(F \sim \frac{1}{r^2}\).
+\[
+F_{\text{team}, i} = \sum_{j \neq i} \frac{-k_{\text{team}} \cdot (r_j - r_i)}{\|r_j - r_i\|^2 + \epsilon}
+\]
+\begin{itemize}
+    \item \(r_j\) - pozycja \(j\)-tego kolegi z drużyny,
+    \item \(r_i\) - aktualna pozycja \(i\)-tego zawodnika,
+    \item \(k_{\text{team}}\) - współczynnik określający intensywność odpychania,
+    \item \(\epsilon\) - mała wartość dodana w celu uniknięcia dzielenia przez zero.
+\end{itemize}
+Ten składnik inspirowany jest zjawiskiem "odpychania", podobnym do sił między naładowanymi cząstkami w modelu elektrostatycznym, gdzie zawodnicy unikają nadmiernego tłoku wokół siebie.
+
+\end{document}
