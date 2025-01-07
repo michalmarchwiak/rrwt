@@ -53,6 +53,11 @@ o4 = OffensivePlayer("o4", 25, 55, 25, 55, False)
 o5 = OffensivePlayer("o5", 34, 60, 34, 60, False)
 o6 = OffensivePlayer("o6", 43, 55, 43, 55, False)
 
+k_goal = 1.0
+k_opp = 2.0
+k_team = 0.5
+
+
 ball = Ball(x=34, y=45, owner=o2)
 
 # Zawodnicy defensywni i ofensywni
@@ -152,7 +157,7 @@ def simulate_step():
         if ball.owner is None:  # Piłka bez właściciela
             defender.move_towards(ball.x, ball.y, delta_t)
         else:  # Obrońcy pilnują pozycji
-            defender.move(ball, delta_t)
+            defender.move(offensives, defenders, k_goal, k_opp, k_team, delta_t)
 
     return True  # Kontynuacja symulacji
 # Symulacja

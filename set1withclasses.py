@@ -3,9 +3,8 @@ import random
 
 
 
-
 class OffensivePlayer:
-    def __init__(self, name, x, y, ideal_x, ideal_y, has_ball=False):
+    def __init__(self, name, x:int, y, ideal_x, ideal_y, has_ball=False)->None:
         """
         Inicjalizacja zawodnika ofensywnego.
         """
@@ -90,6 +89,14 @@ class DefensivePlayer:
         self.ideal_y = ideal_y
         self.speed = 1.0  # Prędkość zawodnika
 
+
+    def closest_offensive_distance(self, offs):
+        """
+        Znajdź najbliższego obrońcę i zwróć odległość.
+        """
+        distances = [np.linalg.norm((self.x - o.x, self.y - o.y)) for o in offs]
+        return min(distances)
+
     def move_towards(self, target_x, target_y, delta_t):
         """
         Poruszaj się w kierunku celu.
@@ -98,20 +105,72 @@ class DefensivePlayer:
         self.x += self.speed * np.cos(direction) * delta_t
         self.y += self.speed * np.sin(direction) * delta_t
 
-    def move(self, ball, delta_t):
+    def calculate_total_force(self, offs, teammates, k_goal, k_opp, k_team, epsilon=1e-9):
+        """
+        Oblicza całkowitą siłę działającą na zawodnika.
+
+        Parametry:
+            offs (list of OffensivePlayer): Lista zawodników ofensywnych (przeciwników).
+            teammates (list of DefensivePlayer): Lista kolegów z drużyny.
+            k_goal (float): Współczynnik siły dążenia do celu.
+            k_opp (float): Współczynnik siły przyciągania do przeciwnika.
+            k_team (float): Współczynnik siły odpychania między zawodnikami.
+            epsilon (float): Mała wartość zapobiegająca dzieleniu przez zero (domyślnie 1e-6).
+
+        Zwraca:
+            tuple: Wektor całkowitej siły działającej na zawodnika (F_x, F_y).
+        """
+        # Aktualna pozycja zawodnika
+        r_x, r_y = self.x, self.y
+
+        # Idealna pozycja zawodnika
+        r_goal_x, r_goal_y = self.ideal_x, self.ideal_y
+
+        # Znalezienie najbliższego przeciwnika
+        closest_opp = min(offs, key=lambda o: ((self.x - o.x) ** 2 + (self.y - o.y) ** 2) ** 0.5)
+        r_opp_x, r_opp_y = closest_opp.x, closest_opp.y
+
+        # Siła dążenia do idealnej pozycji (celu)
+        f_goal_x = -k_goal * (r_x - r_goal_x)
+        f_goal_y = -k_goal * (r_y - r_goal_y)
+
+        # Siła przyciągania do przeciwnika
+        r_diff_opp_x = r_opp_x - r_x
+        r_diff_opp_y = r_opp_y - r_y
+        distance_opp = (r_diff_opp_x ** 2 + r_diff_opp_y ** 2) ** 0.5
+        f_opp_x = (k_opp * r_diff_opp_x) / (distance_opp ** 2 + epsilon)
+        f_opp_y = (k_opp * r_diff_opp_y) / (distance_opp ** 2 + epsilon)
+
+        # Siła odpychania od kolegów z drużyny
+        f_team_x, f_team_y = 0.0, 0.0
+        for teammate in teammates:
+            if teammate == self:  # Pomijamy samego siebie
+                continue
+            r_j_x, r_j_y = teammate.x, teammate.y
+            r_diff_team_x = r_j_x - r_x
+            r_diff_team_y = r_j_y - r_y
+            distance_team = (r_diff_team_x ** 2 + r_diff_team_y ** 2) ** 0.5
+            if distance_team > 0:  # Unikamy dzielenia przez zero
+                f_team_x += (-k_team * r_diff_team_x) / (distance_team ** 2 + epsilon)
+                f_team_y += (-k_team * r_diff_team_y) / (distance_team ** 2 + epsilon)
+
+        # Łączna siła
+        f_total_x = f_goal_x + f_opp_x + f_team_x
+        f_total_y = f_goal_y + f_opp_y + f_team_y
+
+        return f_total_x, f_total_y
+
+
+    def move(self, offs, teammates, k_goal, k_opp, k_team, delta_t):
         """
         Poruszaj się pod wpływem:
         - Przyciągania do idealnej pozycji.
         - Przyciągania do piłki (silniejsze, jeśli bliżej piłki).
         """
-        attraction_to_ball_x = (ball.x - self.x) / (np.linalg.norm((ball.x - self.x, ball.y - self.y)) + 1e-5)
-        attraction_to_ball_y = (ball.y - self.y) / (np.linalg.norm((ball.x - self.x, ball.y - self.y)) + 1e-5)
+        att_x, att_y = self.calculate_total_force(offs, teammates, k_goal, k_opp, k_team)
 
-        attraction_to_ideal_x = self.ideal_x - self.x
-        attraction_to_ideal_y = self.ideal_y - self.y
-
-        self.x += (0.7 * attraction_to_ball_x + 0.3 * attraction_to_ideal_x) * self.speed * delta_t
-        self.y += (0.7 * attraction_to_ball_y + 0.3 * attraction_to_ideal_y) * self.speed * delta_t
+        self.x += att_x * self.speed * delta_t
+        self.y += att_y * self.speed * delta_t
 
     def intercept_pass(self, ball):
         """
