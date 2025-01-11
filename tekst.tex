@@ -79,4 +79,14 @@ F_{\text{team}, i} = \sum_{j \neq i} \frac{-k_{\text{team}} \cdot (r_j - r_i)}{\
 \end{itemize}
 Ten składnik inspirowany jest zjawiskiem "odpychania", podobnym do sił między naładowanymi cząstkami w modelu elektrostatycznym, gdzie zawodnicy unikają nadmiernego tłoku wokół siebie.
 
+\subsection*{Podobieństwo do algorytmu stada \textbf{(Boids)}}
+Stworzony przez nas wzór jest bardzo podobny do algorytmu \textit{Boids}, opracowanego przez Craiga Reynoldsa w 1986 roku, który służy do symulowania zachowań grupy autonomicznych agentów (np. ptaków, ryb, owadów) poruszających się w przestrzeni na podstawie trzech prostych zasad: separacji, wyrównania i kohezji. Zasady te w pewnym sensie odpowiadają naszym zasadom ruchu.
+
+\begin{itemize}
+    \item \textbf{Separacja} w \textit{Boids} zapobiega zderzeniom między agentami, co w naszym przypadku odpowiada sile \( F_{\text{team}, i} \), która utrzymuje odpowiednią odległość między obrońcami, zapobiegając zbytnim skupiskom.  
+    \item \textbf{Wyrównanie} powoduje, że boidy dążą do wyrównania swoich prędkości, ten aspekt nie ma odzwierciedlenia w naszym modelu.  
+    \item \textbf{Kohezja} zapewnia spójność grupy, co w naszym modelu odpowiada równowadze między siłami \( F_{\text{goal}, i} \) i \( F_{\text{opp}, i} \), które pomagają obrońcom reagować na ruchy przeciwnika, jednocześnie utrzymując pozycje w drużynie.
+\end{itemize}
+
+
 \end{document}
