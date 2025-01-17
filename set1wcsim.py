@@ -36,26 +36,24 @@ def draw_pitch():
     plt.gca().add_artist(circle)  # Koło środkowe
     plt.scatter([34], [field_y_max / 2], color='k', s=30)  # Punkt środkowy
 
-# Klasy (DefensivePlayer, OffensivePlayer, Ball) są już zaimplementowane w wcześniejszych etapach.
-# Tworzenie obiektów zawodników ofensywnych i defensywnych oraz piłki
-d1 = DefensivePlayer(18, 15, 18, 15)
-d2 = DefensivePlayer(28, 15, 28, 15)
-d3 = DefensivePlayer(38, 15, 38, 15)
-d4 = DefensivePlayer(48, 15, 48, 15)
+d1 = DefensivePlayer(18, 15, 18, 18)
+d2 = DefensivePlayer(23, 15, 28, 18)
+d3 = DefensivePlayer(41, 15, 38, 18)
+d4 = DefensivePlayer(48, 15, 48, 18)
 d5 = DefensivePlayer(25, 30, 25, 30)
 d6 = DefensivePlayer(35, 30, 35, 30)
 d7 = DefensivePlayer(45, 30, 45, 30)
 
-o1 = OffensivePlayer("o1", 20, 40, 20, 40, False)
-o2 = OffensivePlayer("o2",34, 45, 34, 45, True)
-o3 = OffensivePlayer("o3", 48, 40, 48, 40,False)
-o4 = OffensivePlayer("o4", 25, 55, 25, 55, False)
-o5 = OffensivePlayer("o5", 34, 60, 34, 60, False)
-o6 = OffensivePlayer("o6", 43, 55, 43, 55, False)
+o1 = OffensivePlayer("o1", 20, 40, 14, 40, False)
+o2 = OffensivePlayer("o2", 34, 45, 30, 45, True)
+o3 = OffensivePlayer("o3", 48, 40, 52, 40,False)
+o4 = OffensivePlayer("o4", 25, 55, 20, 55, False)
+o5 = OffensivePlayer("o5", 34, 60, 32, 60, False)
+o6 = OffensivePlayer("o6", 43, 55, 46, 55, False)
 
 k_goal = 1.0
-k_opp = 2.0
-k_team = 0.5
+k_opp = 8.0
+k_team = 1.0
 
 
 ball = Ball(x=34, y=45, owner=o2)
@@ -159,6 +157,9 @@ def simulate_step():
         else:  # Obrońcy pilnują pozycji
             defender.move(offensives, defenders, k_goal, k_opp, k_team, delta_t)
 
+    if ball.y < 16 and ball.owner:
+        print("Ofensywa wygrała")
+        return False
     return True  # Kontynuacja symulacji
 # Symulacja
 plt.figure(figsize=(10, 15))

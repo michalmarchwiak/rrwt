@@ -42,7 +42,7 @@ class OffensivePlayer:
             # Jeśli zawodnik nie ma piłki, wraca do swojej idealnej pozycji
             direction = np.arctan2(self.ideal_y - self.y, self.ideal_x - self.x)
             self.x += self.speed * np.cos(direction) * delta_t * 0.5 # Wolniejszy ruch do idealnej pozycji
-            self.y += (-delta_t * 0.7) + (self.speed * np.sin(direction) * delta_t * 0.5)
+            self.y += (-delta_t * 0.8) + (self.speed * np.sin(direction) * delta_t * 0.5)
 
 
     def closest_defender_distance(self, defenders):
@@ -67,9 +67,6 @@ class OffensivePlayer:
         return best_teammate
 
     def pass_ball(self, ball, teammates, defenders):
-        """
-        Podaj piłkę do najlepszego kolegi z drużyny.
-        """
         best_teammate = self.find_best_teammate(teammates, defenders)
         if best_teammate:
             self.has_ball = False
@@ -87,7 +84,7 @@ class DefensivePlayer:
         self.y = y
         self.ideal_x = ideal_x  # Idealna pozycja w formacji
         self.ideal_y = ideal_y
-        self.speed = 1.0  # Prędkość zawodnika
+        self.speed = 1.1  # Prędkość zawodnika
 
 
     def closest_offensive_distance(self, offs):
@@ -105,17 +102,17 @@ class DefensivePlayer:
         self.x += self.speed * np.cos(direction) * delta_t
         self.y += self.speed * np.sin(direction) * delta_t
 
-    def calculate_total_force(self, offs, teammates, k_goal, k_opp, k_team, epsilon=1e-9):
+    def calculate_total_force(self, offs, teammates, k_goal, k_opp, k_team, epsilon=5e-1):
         """
-        Oblicza całkowitą siłę działającą na zawodnika.
+        Oblicza całkowitą siłę działającą na zawodnika, uwzględniając wpływ wszystkich przeciwników.
 
         Parametry:
             offs (list of OffensivePlayer): Lista zawodników ofensywnych (przeciwników).
             teammates (list of DefensivePlayer): Lista kolegów z drużyny.
             k_goal (float): Współczynnik siły dążenia do celu.
-            k_opp (float): Współczynnik siły przyciągania do przeciwnika.
+            k_opp (float): Współczynnik siły przyciągania do przeciwników.
             k_team (float): Współczynnik siły odpychania między zawodnikami.
-            epsilon (float): Mała wartość zapobiegająca dzieleniu przez zero (domyślnie 1e-6).
+            epsilon (float): Mała wartość zapobiegająca dzieleniu przez zero (domyślnie 1e-3).
 
         Zwraca:
             tuple: Wektor całkowitej siły działającej na zawodnika (F_x, F_y).
@@ -126,20 +123,21 @@ class DefensivePlayer:
         # Idealna pozycja zawodnika
         r_goal_x, r_goal_y = self.ideal_x, self.ideal_y
 
-        # Znalezienie najbliższego przeciwnika
-        closest_opp = min(offs, key=lambda o: ((self.x - o.x) ** 2 + (self.y - o.y) ** 2) ** 0.5)
-        r_opp_x, r_opp_y = closest_opp.x, closest_opp.y
-
         # Siła dążenia do idealnej pozycji (celu)
         f_goal_x = -k_goal * (r_x - r_goal_x)
         f_goal_y = -k_goal * (r_y - r_goal_y)
 
-        # Siła przyciągania do przeciwnika
-        r_diff_opp_x = r_opp_x - r_x
-        r_diff_opp_y = r_opp_y - r_y
-        distance_opp = (r_diff_opp_x ** 2 + r_diff_opp_y ** 2) ** 0.5
-        f_opp_x = (k_opp * r_diff_opp_x) / (distance_opp ** 2 + epsilon)
-        f_opp_y = (k_opp * r_diff_opp_y) / (distance_opp ** 2 + epsilon)
+        # Siła przyciągania do wszystkich napastników
+        f_opp_x, f_opp_y = 0.0, 0.0
+        for opponent in offs:
+            r_opp_x, r_opp_y = opponent.x, opponent.y
+            r_diff_opp_x = r_opp_x - r_x
+            r_diff_opp_y = r_opp_y - r_y
+            distance_opp = max((r_diff_opp_x ** 2 + r_diff_opp_y ** 2) ** 0.5, epsilon)
+
+            # Siła malejąca z kwadratem odległości (lub inną funkcją, np. liniową)
+            f_opp_x += (k_opp * r_diff_opp_x) / (distance_opp ** 2 + epsilon)
+            f_opp_y += (k_opp * r_diff_opp_y) / (distance_opp ** 2 + epsilon)
 
         # Siła odpychania od kolegów z drużyny
         f_team_x, f_team_y = 0.0, 0.0
@@ -149,10 +147,11 @@ class DefensivePlayer:
             r_j_x, r_j_y = teammate.x, teammate.y
             r_diff_team_x = r_j_x - r_x
             r_diff_team_y = r_j_y - r_y
-            distance_team = (r_diff_team_x ** 2 + r_diff_team_y ** 2) ** 0.5
-            if distance_team > 0:  # Unikamy dzielenia przez zero
-                f_team_x += (-k_team * r_diff_team_x) / (distance_team ** 2 + epsilon)
-                f_team_y += (-k_team * r_diff_team_y) / (distance_team ** 2 + epsilon)
+            distance_team = max((r_diff_team_x ** 2 + r_diff_team_y ** 2) ** 0.5, epsilon)
+
+            # Siła odpychania malejąca z kwadratem odległości
+            f_team_x += (-k_team * r_diff_team_x) / (distance_team ** 2 + epsilon)
+            f_team_y += (-k_team * r_diff_team_y) / (distance_team ** 2 + epsilon)
 
         # Łączna siła
         f_total_x = f_goal_x + f_opp_x + f_team_x
@@ -184,21 +183,23 @@ class DefensivePlayer:
     def tackle(self, offensive_player):
         """
         Sprawdź, czy możesz odebrać piłkę przeciwnikowi.
+        Szansa na odbiór piłki jest odwrotnie proporcjonalna do odległości od obrońcy.
+        Przy odległości 0 wynosi 0.5, a przy odległości większej niż 1.5 wynosi 0.
         """
         # Obliczenie odległości do zawodnika ofensywnego
         distance_to_player = np.linalg.norm((self.x - offensive_player.x, self.y - offensive_player.y))
 
-        # Jeśli odległość jest mniejsza niż 1 metr i przeciwnik ma piłkę
-        if distance_to_player < 2.0 and offensive_player.has_ball:
-            # 3/10 szans na odebranie piłki
-            if random.random() < 0.1:
-                offensive_player.has_ball = False
-                print("Zawodnik defensywny przejął piłkę!")
-                return True  # Piłka została przejęta
-            else:
-                return False  # Piłka nie została przejęta
-
-
+        # Jeśli przeciwnik ma piłkę
+        if offensive_player.has_ball:
+            # Wyznaczenie szansy na odbiór piłki
+            if distance_to_player <= 1.5:
+                tackle_chance = max(0.5 * (1.5 - distance_to_player) / 1.5, 0)
+                # Rzut kostką na odbiór piłki
+                if random.random() < tackle_chance:
+                    offensive_player.has_ball = False
+                    print(f"Zawodnik defensywny przejął piłkę od {offensive_player}!")
+                    return True  # Piłka została przejęta
+        return False  # Piłka nie została przejęta
 
 
 
