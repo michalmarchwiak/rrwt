@@ -52,7 +52,7 @@ o5 = OffensivePlayer("o5", 34, 60, 32, 60, False)
 o6 = OffensivePlayer("o6", 43, 55, 46, 55, False)
 
 k_goal = 1.0
-k_opp = 8.0
+k_opp = 5.0
 k_team = 1.0
 
 
@@ -104,19 +104,25 @@ def find_closest_to_ball(defenders, ball):
     return closest_defender
 
 
+
 # Funkcja symulująca jeden krok z poprawionym ruchem zawodnika posiadającego piłkę
 def simulate_step():
     """
     Symulacja jednego kroku gry.
     """
+    print(f"Ball: x={ball.x}, y={ball.y}, owner={ball.owner}")  # Log pozycji piłki i właściciela
+
     # Aktualizacja piłki w ruchu
     if ball.is_moving:
         ball.update_position(delta_t)
+        print(f"Ball is moving to x={ball.x}, y={ball.y}")
     else:
         ball.move()
+        print(f"Ball position: x={ball.x}, y={ball.y}, owner={ball.owner}")
 
     # Ruch zawodników ofensywnych
     for offensive in offensives:
+        print(f"Offensive {offensive} at x={offensive.x}, y={offensive.y}, has_ball={offensive.has_ball}")
         if offensive.has_ball:
             offensive.move(delta_t, defenders)  # Ruch z piłką
             closest_defender_distance = offensive.closest_defender_distance(defenders)
@@ -128,14 +134,14 @@ def simulate_step():
 
     # Próba przejęcia piłki przez obrońców
     for defender in defenders:
-        # Próba przechwycenia podania
+        print(f"Defender {defender} at x={defender.x}, y={defender.y}")
         if ball.is_moving and defender.intercept_pass(ball):
             ball.is_moving = False
             ball.owner = defender
             defender.has_ball = True
             for offensive in offensives:
                 offensive.has_ball = False  # Reset flag ofensywnych
-            print(f"Zawodnik defensywny {defender} przeciął podanie!")
+            print(f"Defender {defender} intercepted the pass!")
             return False  # Zakończenie symulacji, piłka przejęta
 
     # Próba odebrania piłki przez najbliższego obrońcę
@@ -147,7 +153,7 @@ def simulate_step():
             for offensive in offensives:
                 offensive.has_ball = False  # Reset flag ofensywnych
             closest_defender.has_ball = True
-            print(f"Zawodnik defensywny {closest_defender} przejął piłkę!")
+            print(f"Defender {closest_defender} tackled the ball!")
             return False  # Zakończenie symulacji, piłka przejęta
 
     # Ruch obrońców w kierunku piłki lub idealnych pozycji
@@ -161,13 +167,59 @@ def simulate_step():
         print("Ofensywa wygrała")
         return False
     return True  # Kontynuacja symulacji
-# Symulacja
-plt.figure(figsize=(10, 15))
-plt.ion()
-for step in range(steps):
-    if not simulate_step():
-        break  # Koniec symulacji, piłka przejęta przez obrońcę
-    plot_state()
 
-plt.ioff()
-plt.show()
+
+
+def reset_simulation():
+    global defenders, offensives, ball
+
+    # Reset zawodników defensywnych
+    for defender in defenders:
+        defender.reset_position()
+        defender.has_ball = False  # Upewnij się, że obrońcy nie mają piłki
+
+    # Reset zawodników ofensywnych
+    for offensive in offensives:
+        offensive.reset_position()
+        offensive.has_ball = False  # Upewnij się, że napastnicy nie mają piłki
+
+    # Reset piłki
+    ball.reset()
+
+    # Ustaw piłkę w posiadaniu jednego z napastników
+    offensives[1].has_ball = True  # Zakładamy, że o2 zaczyna z piłką
+    ball.owner = offensives[1]
+    ball.x, ball.y = offensives[1].x, offensives[1].y
+    ball.is_moving = False
+
+    print("Symulacja została zresetowana.")  # Log resetu
+
+
+def simulate_multiple_times(num_simulations=100):
+    global defenders, offensives, ball
+    defender_wins = 0
+    offensive_wins = 0
+
+    for simulation in range(num_simulations):
+        print(f"Symulacja {simulation + 1} z {num_simulations}")  # Log iteracji
+        reset_simulation()
+
+        for step in range(steps):
+            if not simulate_step():
+                if ball.owner and isinstance(ball.owner, DefensivePlayer):
+                    defender_wins += 1
+                    print("Zwycięstwo obrońców!")  # Log zwycięstwa obrońców
+                elif ball.owner and isinstance(ball.owner, OffensivePlayer):
+                    offensive_wins += 1
+                    print("Zwycięstwo ofensywy!")  # Log zwycięstwa ofensywy
+                break
+
+    print(f"Defender wins: {defender_wins}, Offensive wins: {offensive_wins}")
+    return defender_wins, offensive_wins
+
+
+# Wywołanie symulacji
+num_simulations = 100
+defender_wins, offensive_wins = simulate_multiple_times(num_simulations)
+print(f"Liczba zwycięstw obrońców: {defender_wins}")
+print(f"Liczba zwycięstw ofensywnych: {offensive_wins}")
