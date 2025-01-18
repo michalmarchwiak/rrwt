@@ -9,12 +9,23 @@ class OffensivePlayer:
         Inicjalizacja zawodnika ofensywnego.
         """
         self.name = name
-        self.x = x
-        self.y = y
+        self.initial_x = x  # Zapisanie początkowej pozycji
+        self.initial_y = y
+        self.x = self.initial_x
+        self.y = self.initial_y
         self.ideal_x = ideal_x  # Idealna pozycja w formacji (X)
         self.ideal_y = ideal_y  # Idealna pozycja w formacji (Y)
         self.has_ball = has_ball
         self.speed = 1.0  # Prędkość zawodnika
+
+
+    def reset_position(self):
+        """
+        Resetuje pozycję zawodnika defensywnego do pozycji początkowej.
+        """
+        self.x = self.initial_x
+        self.y = self.initial_y
+        self.has_ball = False
 
     def __str__(self):
         return self.name
@@ -42,7 +53,7 @@ class OffensivePlayer:
             # Jeśli zawodnik nie ma piłki, wraca do swojej idealnej pozycji
             direction = np.arctan2(self.ideal_y - self.y, self.ideal_x - self.x)
             self.x += self.speed * np.cos(direction) * delta_t * 0.5 # Wolniejszy ruch do idealnej pozycji
-            self.y += (-delta_t * 0.8) + (self.speed * np.sin(direction) * delta_t * 0.5)
+            self.y += (-delta_t * 0.75) + (self.speed * np.sin(direction) * delta_t * 0.5)
 
 
     def closest_defender_distance(self, defenders):
@@ -73,19 +84,28 @@ class OffensivePlayer:
             ball.owner = None  # Piłka przestaje mieć właściciela podczas ruchu
             ball.target = best_teammate  # Ustawienie celu podania
             ball.is_moving = True  # Piłka zaczyna się poruszać
-            print(f"{self} podał piłkę do {best_teammate}")
 
 class DefensivePlayer:
     def __init__(self, x, y, ideal_x, ideal_y):
         """
         Inicjalizacja zawodnika defensywnego.
         """
-        self.x = x
-        self.y = y
+        self.initial_x = x  # Zapisanie początkowej pozycji
+        self.initial_y = y
+        self.x = self.initial_x
+        self.y = self.initial_y
         self.ideal_x = ideal_x  # Idealna pozycja w formacji
         self.ideal_y = ideal_y
         self.speed = 1.1  # Prędkość zawodnika
+        self.has_ball = False
 
+    def reset_position(self):
+        """
+        Resetuje pozycję zawodnika defensywnego do pozycji początkowej.
+        """
+        self.x = self.initial_x
+        self.y = self.initial_y
+        self.has_ball = False
 
     def closest_offensive_distance(self, offs):
         """
@@ -177,7 +197,8 @@ class DefensivePlayer:
         """
         if ball.is_moving and not ball.owner:
             distance_to_ball = np.linalg.norm((self.x - ball.x, self.y - ball.y))
-            return distance_to_ball < 1.0
+            if random.random() < 0.5 and distance_to_ball < 0.75:
+                return True
         return False
 
     def tackle(self, offensive_player):
@@ -197,7 +218,6 @@ class DefensivePlayer:
                 # Rzut kostką na odbiór piłki
                 if random.random() < tackle_chance:
                     offensive_player.has_ball = False
-                    print(f"Zawodnik defensywny przejął piłkę od {offensive_player}!")
                     return True  # Piłka została przejęta
         return False  # Piłka nie została przejęta
 
@@ -210,10 +230,22 @@ class Ball:
         """
         self.x = x
         self.y = y
+        self.initial_x = self.x
+        self.initial_y = self.y
         self.owner = owner  # Zawodnik posiadający piłkę (lub None)
         self.is_moving = False
         self.speed = 4.0
         self.target = None
+
+
+    def reset(self):
+        """
+        Resetuje pozycję zawodnika defensywnego do pozycji początkowej.
+        """
+        self.x = self.initial_x
+        self.y = self.initial_y
+        self.owner = None
+        self.is_moving = False
 
     def closest_defender_distance(self, defenders):
         """
@@ -237,7 +269,6 @@ class Ball:
                 self.owner = self.target
                 self.owner.has_ball = True
                 self.target = None
-                print(f"piłka dotarła do {self.owner}")
 
     def move(self):
         if self.owner:
