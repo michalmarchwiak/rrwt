@@ -88,5 +88,56 @@ Stworzony przez nas wzór jest bardzo podobny do algorytmu \textit{Boids}, oprac
     \item \textbf{Kohezja} zapewnia spójność grupy, co w naszym modelu odpowiada równowadze między siłami \( F_{\text{goal}, i} \) i \( F_{\text{opp}, i} \), które pomagają obrońcom reagować na ruchy przeciwnika, jednocześnie utrzymując pozycje w drużynie.
 \end{itemize}
 
+\section*{Symulacja ataku na bramkę}
+Korzystając z naszego wzoru przygotowaliśmy prostą symulacje obrony akcji bramkowej. Napastnicy przemieszczają się w linii prostej w stronę pola karnego, a zachowanie obrońców jest wynikową sumy naszych sił działających na nich. Gdy dochodzi do spotkania defensora i atakującego z piłką z prawdopodobieństwem 50 procent albo piłka zostaje odebrana co kończy symulacje na korzyść drużyny broniącej, albo z takim samym prawdopodobieństwem napastnik podaje piłkę do najbliższego kolegi z kolegi z drużyny który jest w bezpiecznej pozycji. Zwycięstwem druzyny atakującej jest dotarcie do pola karnego przeciwnika.
+
+\section*{Optymalizacja}
+
+Chcemy znaleźć takie wartości parametrów \(k_{\text{pos}}, k_{\text{opp}}, k_{\text{team}}\), które maksymalizują funkcję celu:
+\[
+f(k_{\text{pos}}, k_{\text{opp}}, k_{\text{team}}) = \frac{1}{N} \sum_{i=1}^N \text{simulate}(k_{\text{pos}}, k_{\text{opp}}, k_{\text{team}})
+\]
+gdzie \(\text{simulate}\) zwraca wynik pojedynczej symulacji (1 dla sukcesu obrońców, 0 dla porażki), a N oznacza liczbę przeprowadzonych symulacji (w naszym przypadku będzie to 100). W tym celu zastosujemy metodę \textit{gradient ascent}, aby iteracyjnie znaleźć maksimum tej funkcji.
+
+\section*{Implementacja metody gradient ascent}
+
+Gradient ascent to iteracyjna metoda znajdowania maksimum funkcji. W odróżnieniu od gradient descent, w którym schodzimy w dół funkcji, w gradient ascent poruszamy się w kierunku gradientu, czyli w górę funkcji poszukując jej maksimum.
+
+\subsection*{Gradient funkcji celu}
+
+\[
+\nabla f = \left( \frac{\partial f}{\partial k_{\text{pos}}}, \frac{\partial f}{\partial k_{\text{opp}}}, \frac{\partial f}{\partial k_{\text{team}}} \right)
+\]
+
+Ponieważ \(f\) nie jest podana w sposób analityczny, gradient liczymy numerycznie:
+\[
+\frac{\partial f}{\partial k_i} \approx \frac{f(k + \epsilon e_i) - f(k - \epsilon e_i)}{2\epsilon}
+\]
+gdzie \(e_i\) to jednostkowy wektor wskazujący kierunek parametru \(\omega_i\), a \(\epsilon\) to mała wartość, np. \(10^{-6}\).
+
+\subsection*{Aktualizacja parametrów}
+W gradient ascent aktualizujemy parametry, poruszając się w kierunku gradientu:
+\[
+k^{(t+1)} = k^{(t)} + \alpha \nabla f(k^{(t)})
+\]
+gdzie:
+\begin{itemize}
+    \item \(k^{(t)}\): Wektor parametrów w iteracji \(t\).
+    \item \(\alpha\): Krok uczenia (\textit{learning rate}) — mała wartość decydująca o wielkości kroku w kierunku gradientu. Dzięki jego odpowiedniego dobraniu możemy uniknąć zbieżności do maksimum lokalnego i zamiast tego zmierzać w kierunku maksimum globalnego.
+    \item \(\nabla f(k^{(t)})\): Gradient funkcji celu w bieżącym punkcie.
+\end{itemize}
+
+\subsection*{3. Kroki algorytmu}
+\begin{enumerate}
+    \item \textbf{Inicjacja parametrów:} Wybieramy początkowe wartości \(k_{\text{pos}}, k_{\text{opp}}, k_{\text{team}}\). (W naszym przypadku [5.0, 5.0, 5.0])
+    \item \textbf{Liczenie gradientu:} Wyznaczamy gradient \(\nabla f\) numerycznie w bieżącym punkcie.
+    \item \textbf{Aktualizacja parametrów:} Aktualizujemy wartości parametrów zgodnie ze wzorem aktualizacji.
+    \item \textbf{Powtórz:} Powtarzamy kroki od 2 do 3 określoną liczbę razy.
+\end{enumerate}
+Ze względu na element losowości w naszej symulacji, funkcja nie osiągnie jednego, definitywnego maksimum. Dlatego zamiast ustalać warunek stopu, iterujemy algorytm przez dużą liczbę kroków. W praktyce, jeśli sukces obrońców wzrasta parametry są przesuwane w kierunku odpowiadającemu większemu sukcesowi.
+
+
+\section*{Wynik symulacji}
+chuj
 
 \end{document}
