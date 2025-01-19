@@ -111,7 +111,7 @@ Gradient ascent to iteracyjna metoda znajdowania maksimum funkcji. W odróżnien
 
 Ponieważ \(f\) nie jest podana w sposób analityczny, gradient liczymy numerycznie:
 \[
-\frac{\partial f}{\partial k_i} \approx \frac{f(k + \epsilon e_i) - f(k - \epsilon e_i)}{2\epsilon}
+\frac{\partial f}{\partial k_i} \approx \frac{f(k + \epsilon e_i) - f(k - \epsilon e_i)}{\epsilon}
 \]
 gdzie \(e_i\) to jednostkowy wektor wskazujący kierunek parametru \(\omega_i\), a \(\epsilon\) to mała wartość, np. \(10^{-6}\).
 
