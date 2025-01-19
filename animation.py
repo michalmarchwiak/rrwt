@@ -4,6 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 matplotlib.use('TkAgg')
 
+"""To animate simulation use animation()"""
+
+
+
 field_x_min, field_x_max = float(0), float(68)
 field_y_min, field_y_max = float(0), float(105)
 
