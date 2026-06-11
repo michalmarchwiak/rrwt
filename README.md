@@ -8,9 +8,9 @@ Model opisuje ruch obrońców jako sumę trzech składników:
 
 | Siła | Znaczenie | Wzór (uproszczony) |
 |------|-----------|-------------------|
-| \(F_{\text{pos}}\) | Dążenie do pozycji wyjściowej (prawo Hooke'a) | \(-k_{\text{pos}} \cdot (\mathbf{r}_i - \mathbf{r}_{\text{pos}})\) |
-| \(F_{\text{opp}}\) | Reakcja na napastników (przyciąganie \(1/r^2\)) | \(k_{\text{opp}} \cdot (\mathbf{r}_{\text{opp}} - \mathbf{r}_i) / (\|\mathbf{r}\|^2 + \varepsilon)\) |
-| \(F_{\text{team}}\) | Odpychanie od kolegów ( Coulomb ) | \(\sum -k_{\text{team}} \cdot (\mathbf{r}_j - \mathbf{r}_i) / (\|\mathbf{r}\|^2 + \varepsilon)\) |
+| $F_{\text{pos}}$ | Dążenie do pozycji wyjściowej (prawo Hooke'a) | \(-k_{\text{pos}} \cdot (\mathbf{r}_i - \mathbf{r}_{\text{pos}})\) |
+| $F_{\text{opp}}$ | Reakcja na napastników (przyciąganie \(1/r^2\)) | \(k_{\text{opp}} \cdot (\mathbf{r}_{\text{opp}} - \mathbf{r}_i) / (\|\mathbf{r}\|^2 + \varepsilon)\) |
+| $F_{\text{team}}$ | Odpychanie od kolegów ( Coulomb ) | \(\sum -k_{\text{team}} \cdot (\mathbf{r}_j - \mathbf{r}_i) / (\|\mathbf{r}\|^2 + \varepsilon)\) |
 
 Symulacja obejmuje:
 
